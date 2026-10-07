@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UniCompute</title>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--line:#30363d;--ink:#e6edf3;--mute:#8b949e;--acc:#388bfd;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--mono:Consolas,"Cascadia Mono",Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,"Segoe UI",sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+  h1{font-size:17px;margin:0;letter-spacing:.03em}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+  .pill.ok{color:var(--ok);border-color:var(--ok)}.pill.bad{color:var(--bad);border-color:var(--bad)}.pill.warn{color:var(--warn);border-color:var(--warn)}.pill.acc{color:var(--acc);border-color:var(--acc)}
+  .self{color:var(--mute);font-size:12px;margin-left:auto;font-family:var(--mono)}
+  main{display:grid;grid-template-columns:400px 1fr;gap:14px;padding:14px 18px}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+  h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:0 0 10px}
+  .peer{border:1px solid var(--line);border-radius:6px;padding:9px 10px;margin-bottom:8px}
+  .peer .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .peer .n{font-weight:600}
+  .m{color:var(--mute);font-size:12px;font-family:var(--mono);overflow-wrap:anywhere}
+  button{background:var(--acc);color:#fff;border:0;border-radius:5px;padding:5px 11px;font-weight:600;cursor:pointer;font-size:13px}
+  button.sec{background:transparent;border:1px solid var(--line);color:var(--ink)}
+  button.danger{background:transparent;border:1px solid var(--bad);color:var(--bad)}
+  button:disabled{opacity:.4;cursor:default}
+  input,select{background:#0b0f14;color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:6px 8px;font:inherit;width:100%}
+  .form{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;align-items:end}
+  .form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute)}
+  .full{grid-column:1/-1}
+  .task{border:1px solid var(--line);border-radius:6px;padding:9px 10px;margin-bottom:8px}
+  .task .hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .task .hd .id{font-family:var(--mono);color:var(--mute);font-size:12px}
+  pre{background:#0b0f14;border:1px solid var(--line);border-radius:5px;padding:8px;margin:8px 0 0;max-height:240px;overflow:auto;font:12px/1.4 var(--mono);white-space:pre-wrap;word-break:break-word}
+  .bar{height:6px;background:#0b0f14;border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-top:6px}
+  .bar>i{display:block;height:100%;background:var(--acc)}
+  footer{display:flex;gap:22px;padding:9px 18px;border-top:1px solid var(--line);background:var(--panel);font:12px var(--mono);color:var(--mute);position:sticky;bottom:0;flex-wrap:wrap}
+  footer b{color:var(--ink)}
+  .res{margin-top:6px;font-size:13px}
+  .res b.ok{color:var(--ok)}.res b.bad{color:var(--bad)}
+  #toast{position:fixed;left:50%;bottom:56px;transform:translateX(-50%);background:var(--bad);color:#fff;padding:8px 14px;border-radius:6px;font-weight:600;display:none;z-index:9}
+  .hint{color:var(--mute);font-size:12px;margin:0 0 8px}
+  details summary{cursor:pointer;color:var(--mute);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>UniCompute</h1>
+  <span id="cloud" class="pill">cloud: connecting…</span>
+  <span id="nat" class="pill"></span>
+  <span class="self" id="self"></span>
+</header>
+
+<main>
+  <section>
+    <h2>Peers on the cloud</h2>
+    <p class="hint">Every PC running the agent with the same coordinator shows up here. Click <b>Connect</b> to open a direct P2P link.</p>
+    <div id="peers"></div>
+  </section>
+
+  <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+    <section>
+      <h2>Send a task over P2P</h2>
+      <div class="form">
+        <label>Target peer<select id="target"></select></label>
+        <label>Kind<select id="kind">
+          <option value="shell">shell command</option>
+          <option value="compute">compute: count primes below N</option>
+          <option value="payload">payload: send N MB, get SHA-256 back</option>
+        </select></label>
+        <label id="f-command" class="full">Command (runs on the target PC)<input id="command" value="hostname"></label>
+        <label id="f-n" style="display:none">N<input id="n" type="number" value="5000000"></label>
+        <label id="f-mb" style="display:none">Megabytes<input id="mb" type="number" value="20"></label>
+        <label>Timeout (seconds)<input id="timeout" type="number" value="120"></label>
+        <div><button id="run">▶ Run on peer</button></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Tasks</h2>
+      <div id="tasks"><p class="hint">Nothing yet.</p></div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <span>P2P ↑<b id="p2pout">0 B</b> ↓<b id="p2pin">0 B</b></span>
+  <span>Cloud (this agent) ↑<b id="cout">0 B</b> ↓<b id="cin">0 B</b></span>
+  <span>Coordinator relayed total <b id="relayed">–</b></span>
+  <span>Nodes on cloud <b id="nodes">–</b></span>
+</footer>
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+let state = null, ws, selfId = null;
+
+function fmtB(n){ n = n||0; if(n<1024) return n+' B'; if(n<1048576) return (n/1024).toFixed(1)+' KB'; if(n<1073741824) return (n/1048576).toFixed(1)+' MB'; return (n/1073741824).toFixed(2)+' GB'; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function dur(ms){ return ms<1000? ms+' ms' : (ms/1000).toFixed(2)+' s'; }
+function toast(m){ const t=$('#toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',3500); }
+
+function connectWS(){
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onmessage = e => { const m = JSON.parse(e.data); if(m.type==='state'){ state=m.state; render(); } else if(m.type==='error'){ toast(m.message); } };
+  ws.onclose = () => { $('#cloud').textContent='agent offline — restart unicompute.exe'; $('#cloud').className='pill bad'; setTimeout(connectWS,1000); };
+}
+function send(cmd){ if(ws && ws.readyState===1) ws.send(JSON.stringify(cmd)); else toast('not connected to local agent'); }
+
+function render(){
+  const s = state; selfId = s.self.id;
+  // header
+  const c = $('#cloud');
+  c.textContent = s.cloud.connected ? 'cloud: connected' : 'cloud: '+(s.cloud.msg||'disconnected');
+  c.className = 'pill '+(s.cloud.connected?'ok':'bad');
+  const n = $('#nat'); const nt = s.self.nat_type||'?';
+  n.textContent = 'NAT: '+nt; n.className = 'pill '+(nt==='cone'||nt==='open'?'ok':nt==='symmetric'?'warn':'bad');
+  $('#self').textContent = `${s.self.name} · ${s.self.id} · ${s.self.os}/${s.self.arch} · ${s.self.cores} cores · ${fmtB(s.self.mem_total)} · CPU ${Math.round(s.self.cpu_pct)}%`;
+  // peers
+  const peers = (s.peers||[]).slice().sort((a,b)=>(b.connected-a.connected)||a.name.localeCompare(b.name));
+  $('#peers').innerHTML = peers.length ? peers.map(p=>{
+    const st = p.connected ? `<span class="pill ok">● P2P CONNECTED</span>` : p.p2p_state && p.p2p_state!=='closed' && p.p2p_state!=='failed' ? `<span class="pill warn">${esc(p.p2p_state)}…</span>` : `<span class="pill">○ not connected</span>`;
+    const cloud = p.on_cloud ? '' : ` <span class="pill warn">left cloud, P2P still up</span>`;
+    const cpu = p.telemetry ? `CPU ${Math.round(p.telemetry.cpu_pct)}% (live via P2P)` : `CPU ${Math.round(p.cpu_pct)}% (via cloud)`;
+    const path = p.connected ? `<div class="m">${p.path.direct?'<span style="color:var(--ok)">':'<span style="color:var(--warn)">'}${esc(p.path.type)}</span> · RTT ${p.rtt_ms} ms<br>local&nbsp; ${esc(p.path.local)}<br>remote ${esc(p.path.remote)}<br>↑${fmtB(p.bytes_out)} ↓${fmtB(p.bytes_in)}</div>` : '';
+    const btn = p.connected ? `<button class="sec" data-use="${p.id}">Use as target</button> <button class="danger" data-disc="${p.id}">Disconnect</button>` : `<button data-conn="${p.id}" ${(!p.on_cloud||(p.p2p_state&&!['closed','failed','disconnected',''].includes(p.p2p_state)))?'disabled':''}>Connect</button>`;
+    return `<div class="peer"><div class="row"><span class="n">${esc(p.name)}</span>${st}${cloud}</div><div class="m">${esc(p.id)} · ${esc(p.os)}/${esc(p.arch)} · ${p.cores} cores · ${fmtB(p.mem_total)} · NAT ${esc(p.nat_type||'?')} · ${esc(p.public_ip||'')}</div><div class="m">${cpu}</div>${path}<div class="row" style="margin-top:6px">${btn}</div></div>`;
+  }).join('') : `<p class="hint">No other peers on the cloud yet. Start unicompute.exe on another PC with the same --coordinator.</p>`;
+  // target select
+  const sel = $('#target'); const cur = sel.value;
+  const connected = peers.filter(p=>p.connected);
+  sel.innerHTML = connected.length ? connected.map(p=>`<option value="${p.id}">${esc(p.name)} (${p.id})</option>`).join('') : `<option value="">— connect to a peer first —</option>`;
+  if(connected.some(p=>p.id===cur)) sel.value = cur;
+  $('#run').disabled = !connected.length;
+  // tasks
+  const tasks = s.tasks||[];
+  const scrolled = {};
+  document.querySelectorAll('#tasks pre').forEach(pre=>{ scrolled[pre.dataset.id] = pre.scrollTop+pre.clientHeight < pre.scrollHeight-4; });
+  $('#tasks').innerHTML = tasks.length ? tasks.map(t=>{
+    const dirArrow = t.direction==='sent' ? `→ <b>${esc(t.peer_name)}</b>` : `← from <b>${esc(t.peer_name)}</b>`;
+    const stCls = t.status==='done'?'ok':t.status==='running'||t.status==='queued'?'acc':t.status==='cancelled'?'warn':'bad';
+    let what = t.kind==='shell'?`<code>${esc(t.command)}</code>`:t.kind==='compute'?`count primes below ${t.n.toLocaleString()}`:`payload ${(t.bytes/1048576).toFixed(0)} MB`;
+    let prog = '';
+    if(t.kind==='payload' && (t.status==='running'||t.status==='queued')){ const done = t.direction==='sent'?t.bytes_sent:t.bytes_recv; prog = `<div class="bar"><i style="width:${Math.min(100,100*(done||0)/t.bytes)}%"></i></div><div class="m">${fmtB(done)} / ${fmtB(t.bytes)}</div>`; }
+    let res = '';
+    if(t.result){
+      const r=t.result;
+      res = `<div class="res">`;
+      if(r.error) res += `<b class="bad">${esc(r.error)}</b> · `;
+      else res += `exit <b class="${r.exit_code===0?'ok':'bad'}">${r.exit_code}</b> · `;
+      res += `${dur(r.duration_ms)}`;
+      if(r.summary) res += ` · ${esc(r.summary)}`;
+      if(t.kind==='payload' && t.direction==='sent' && r.digest){ res += `<br>remote sha256 <span class="m">${esc(r.digest)}</span><br>local&nbsp; sha256 <span class="m">${esc(t.local_digest||'…')}</span> `; if(t.digest_match===true) res += `<b class="ok">✓ MATCH</b>`; else if(t.digest_match===false) res += `<b class="bad">✗ MISMATCH</b>`; }
+      res += `</div>`;
+    }
+    const pathLine = t.path ? ` · via <span style="color:${t.path.startsWith('DIRECT')?'var(--ok)':'var(--warn)'}">${esc(t.path)}</span>` : '';
+    const cancel = (t.status==='running'||t.status==='queued') ? ` <button class="danger" data-cancel="${t.id}" style="margin-left:auto">Cancel</button>` : '';
+    const out = t.output ? `<pre data-id="${t.id}">${esc(t.output)}</pre>` : '';
+    return `<div class="task"><div class="hd"><span class="id">${t.id}</span> ${dirArrow} <span class="pill ${stCls}">${t.status}</span> <span class="m">${t.kind}</span>${cancel}</div><div class="m" style="color:var(--ink);font-family:inherit;margin-top:3px">${what}${pathLine}</div>${prog}${out}${res}</div>`;
+  }).join('') : `<p class="hint">Nothing yet.</p>`;
+  document.querySelectorAll('#tasks pre').forEach(pre=>{ if(!scrolled[pre.dataset.id]) pre.scrollTop = pre.scrollHeight; });
+  // footer
+  $('#p2pout').textContent = fmtB(s.p2p.bytes_out); $('#p2pin').textContent = fmtB(s.p2p.bytes_in);
+  $('#cout').textContent = fmtB(s.cloud.bytes_out); $('#cin').textContent = fmtB(s.cloud.bytes_in);
+  if(s.coord_stats){ $('#relayed').textContent = fmtB(s.coord_stats.total_relayed_bytes)+' (signalling only)'; $('#nodes').textContent = s.coord_stats.nodes; }
+  else { $('#relayed').textContent = s.cloud.connected?'…':'coordinator unreachable'; $('#nodes').textContent = s.cloud.connected?'…':'–'; }
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.dataset.conn){ send({cmd:'connect', peer_id:b.dataset.conn}); b.disabled=true; }
+  else if(b.dataset.disc){ send({cmd:'disconnect', peer_id:b.dataset.disc}); }
+  else if(b.dataset.use){ $('#target').value = b.dataset.use; }
+  else if(b.dataset.cancel){ send({cmd:'cancel', task_id:b.dataset.cancel}); }
+});
+$('#kind').addEventListener('change', () => {
+  const k = $('#kind').value;
+  $('#f-command').style.display = k==='shell'?'':'none';
+  $('#f-n').style.display = k==='compute'?'':'none';
+  $('#f-mb').style.display = k==='payload'?'':'none';
+});
+$('#run').addEventListener('click', () => {
+  const peer_id = $('#target').value; if(!peer_id){ toast('connect to a peer first'); return; }
+  send({cmd:'submit', peer_id, kind:$('#kind').value, command:$('#command').value, n:+$('#n').value, mb:+$('#mb').value, timeout_sec:+$('#timeout').value});
+});
+$('#command').addEventListener('keydown', e => { if(e.key==='Enter') $('#run').click(); });
+connectWS();
+</script>
+</body>
+</html>

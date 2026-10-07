@@ -1,0 +1,13 @@
+﻿# build output - binaries are published as GitHub Release assets, not committed
+bin/
+*.exe
+
+# logs and local scratch
+*.log
+*.out
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
