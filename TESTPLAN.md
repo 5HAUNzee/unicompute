@@ -45,7 +45,7 @@ All submitted from A unless stated. Target = B.
 | # | Step | Pass when | ☐ |
 |---|---|---|---|
 | **T2.1** | kind **shell**, command `hostname` | **Output is B's hostname, not A's.** This is the core proof. | ☐ |
-| T2.2 | shell: `echo %COMPUTERNAME% & wmic cpu get name` | B's actual computer name and CPU model | ☐ |
+| T2.2 | shell: `echo %COMPUTERNAME% & echo %PROCESSOR_IDENTIFIER% & echo %NUMBER_OF_PROCESSORS% cores` | B's actual computer name, CPU family and core count (`wmic` is removed on Windows 11 24H2+, so it is not used here) | ☐ |
 | T2.3 | shell: `dir C:\` | A directory listing from B | ☐ |
 | T2.4 | shell: `exit 42` | Result shows **exit 42** (status `done`) | ☐ |
 | T2.5 | shell: `for /L %i in (1,1,8) do @(echo tick %i & ping -n 2 127.0.0.1 >nul)` | Lines appear **one per second**, streamed, not all at the end. (`ping -n 2` is a 1 s sleep; `timeout /t` exits instantly when stdin is not a console, so don't use it here.) | ☐ |
@@ -55,7 +55,7 @@ All submitted from A unless stated. Target = B.
 | T2.9 | compute N = 10,000,000 | `664579` | ☐ |
 | T2.10 | compute to a *slower* PC (if you have one) | Noticeably longer duration — proves it ran there | ☐ |
 | T2.11 | kind **payload**, 20 MB | Progress bar fills; result shows remote sha256, local sha256, **✓ MATCH**, throughput in MB/s | ☐ |
-| T2.12 | payload 100 MB | Same, ✓ MATCH; note the MB/s | ☐ |
+| T2.12 | payload 100 MB | Same, ✓ MATCH; note the MB/s. **On a slow or high-RTT link (mobile data, RTT > 150 ms) raise Timeout to 600 s first** — the default 120 s is not enough for 20 MB at ~80 KB/s, and the task will report "timed out waiting for payload" even though the link stayed up | ☐ |
 | T2.13 | From **B**, send `hostname` to A | A's hostname appears on B — bidirectional | ☐ |
 | T2.14 | Submit two `compute` tasks back-to-back | Both run concurrently and both complete | ☐ |
 | T2.15 | `curl -X POST http://127.0.0.1:7777/api/task -d "{\"peer_id\":\"<B id>\",\"kind\":\"shell\",\"command\":\"hostname\"}"` | Returns `{"task_id":…}`; `GET /api/task?id=…` shows the result | ☐ |
